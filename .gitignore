@@ -1,0 +1,10 @@
+### Scala ### 
+*.class 
+*.log
+*.iml
+*.ipr
+*.iws
+.idea
+out
+*target
+*.idea
