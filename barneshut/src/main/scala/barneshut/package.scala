@@ -169,10 +169,14 @@ package object barneshut {
         case Fork(nw, ne, sw, se)  =>
           // see if node is far enough from the body,
           // or recursion is needed
-          handleQuad(addForce, traverse, nw)
-          handleQuad(addForce, traverse, ne)
-          handleQuad(addForce, traverse, sw)
-          handleQuad(addForce, traverse, se)
+          if (quad.size / distance(quad.massX, quad.massY, x, y) < theta) {
+            addForce(quad.mass, quad.massX, quad.massY)
+          } else {
+            traverse(nw)
+            traverse(ne)
+            traverse(sw)
+            traverse(se)
+          }
       }
 
       traverse(quad)
@@ -185,9 +189,6 @@ package object barneshut {
       new Body(mass, nx, ny, nxspeed, nyspeed)
     }
 
-    private def handleQuad(addForce: (Float, Float, Float) => Unit, traverse: (Quad) => Unit, q: Quad) = {
-      if (q.size / distance(x, y, q.massX, q.massY) < theta) traverse(q) else addForce(q.mass, q.massX, q.massY)
-    }
   }
 
   val SECTOR_PRECISION = 8
@@ -198,31 +199,19 @@ package object barneshut {
     for (i <- matrix.indices) matrix(i) = new ConcBuffer
 
     def +=(b: Body): SectorMatrix = {
-      val x = ((if(b.x >= boundaries.maxX) sectorPrecision - 1 else if(b.x <= boundaries.minX) 0 else b.x) / sectorSize).toInt
-      val y = ((if(b.y >= boundaries.maxY) sectorPrecision - 1 else if(b.y <= boundaries.minY) 0 else b.y) / sectorSize).toInt
-
-      println(s"sectorSize $sectorSize")
-      println(s"sectorPrecision $sectorPrecision")
-      println(s"boundaries.size ${boundaries.size}")
-      println(boundaries)
-      println(s"b.x=${b.x}  b.y=${b.y}")
-      println(s"x=$x  y=$y")
-
-      assert(x < sectorPrecision)
-      assert(y < sectorPrecision)
+      val x = ((Math.min(Math.max(boundaries.minX, b.x), boundaries.maxX) - boundaries.minX) / sectorSize).toInt
+      val y = ((Math.min(Math.max(boundaries.minY, b.y), boundaries.maxY) - boundaries.minY) / sectorSize).toInt
       this(x, y) += b
 
       this
     }
 
     def apply(x: Int, y: Int) = {
-      println(s"apply x == $x")
-      println(s"apply y == $y")
       matrix(y * sectorPrecision + x)
     }
 
     def combine(that: SectorMatrix): SectorMatrix = {
-      for (i <- matrix.indices) matrix(i).combine(that.matrix(i))
+      for (i <- matrix.indices) that.matrix(i).foreach(matrix(i) +=)
       this
     }
 
