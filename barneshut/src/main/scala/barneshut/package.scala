@@ -1,6 +1,8 @@
-import barneshut.Leaf
+import barneshut.{Boundaries, Leaf}
 import common._
 import barneshut.conctrees._
+
+import scala.language.postfixOps
 
 package object barneshut {
 
@@ -191,19 +193,37 @@ package object barneshut {
   val SECTOR_PRECISION = 8
 
   class SectorMatrix(val boundaries: Boundaries, val sectorPrecision: Int) {
-    val sectorSize = boundaries.size / sectorPrecision
-    val matrix     = new Array[ConcBuffer[Body]](sectorPrecision * sectorPrecision)
-    for (i <- 0 until matrix.length) matrix(i) = new ConcBuffer
+    val sectorSize: Float = boundaries.size / sectorPrecision
+    val matrix            = new Array[ConcBuffer[Body]](sectorPrecision * sectorPrecision)
+    for (i <- matrix.indices) matrix(i) = new ConcBuffer
 
     def +=(b: Body): SectorMatrix = {
-      ???
+      val x = ((if(b.x >= boundaries.maxX) sectorPrecision - 1 else if(b.x <= boundaries.minX) 0 else b.x) / sectorSize).toInt
+      val y = ((if(b.y >= boundaries.maxY) sectorPrecision - 1 else if(b.y <= boundaries.minY) 0 else b.y) / sectorSize).toInt
+
+      println(s"sectorSize $sectorSize")
+      println(s"sectorPrecision $sectorPrecision")
+      println(s"boundaries.size ${boundaries.size}")
+      println(boundaries)
+      println(s"b.x=${b.x}  b.y=${b.y}")
+      println(s"x=$x  y=$y")
+
+      assert(x < sectorPrecision)
+      assert(y < sectorPrecision)
+      this(x, y) += b
+
       this
     }
 
-    def apply(x: Int, y: Int) = matrix(y * sectorPrecision + x)
+    def apply(x: Int, y: Int) = {
+      println(s"apply x == $x")
+      println(s"apply y == $y")
+      matrix(y * sectorPrecision + x)
+    }
 
     def combine(that: SectorMatrix): SectorMatrix = {
-      ???
+      for (i <- matrix.indices) matrix(i).combine(that.matrix(i))
+      this
     }
 
     def toQuad(parallelism: Int): Quad = {
